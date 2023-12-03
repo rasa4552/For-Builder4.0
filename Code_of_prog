@@ -1,0 +1,119 @@
+import pandas as pd
+import numpy as np
+import joblib
+import seaborn as sns
+import matplotlib.pyplot as plt
+from matplotlib import font_manager as fm
+from scipy import stats
+from scipy.stats import mannwhitneyu
+import streamlit as st
+import phik
+from phik.report import plot_correlation_matrix
+
+def plot_pie_chart(df, column_name):
+    column_values = df[column_name]
+    value_counts = column_values.value_counts()
+
+    limit = 11
+    # Ограничение количества категорий с помощью параметра limit
+    other_category = 'Other'
+    limited_value_counts = value_counts[:limit]
+    if len(value_counts) > limit:
+        other_count = value_counts[limit:].sum()
+        limited_value_counts[other_category] = other_count
+
+    fig, ax = plt.subplots()
+    proptease = fm.FontProperties()
+    proptease.set_size('xx-small')
+    patches, texts, autotexts = ax.pie(limited_value_counts, labels=None, autopct='%1.1f%%')
+    labels = [f'{label} ({autotext.get_text()})' for label, autotext in zip(limited_value_counts.index, autotexts)]
+    ax.axis('equal')
+    ax.set_title('Распределение значений столбца')
+    plt.setp(autotexts, fontproperties=proptease)
+    ax.legend(patches, labels, title=column_name)
+    st.pyplot(fig)
+
+
+def run():
+    st.title("Решение для прогнозирования потребности в персонале")
+    html_temp = """
+
+    """
+
+    st.markdown(html_temp)
+
+    # Загрузка файла
+    uploaded_file = st.file_uploader("Выберите файл")
+    if uploaded_file is not None:
+        try:
+            df = pd.read_excel(uploaded_file)
+            st.write(df)
+
+            st.subheader("Распределение переменных")
+            # Список переменных для выбора
+            variable_list = df.columns.tolist()
+            # Выбор переменных для исследования
+            variable1 = st.selectbox("Посмотреть распределение переменной 1", variable_list)
+            variable2 = st.selectbox("Посмотреть распределение переменной 2", variable_list)
+
+            # Визуализация распределения переменных
+            # Первая
+            st.subheader("Распределение переменной 1")
+
+            # Гистограмма для числовых переменных
+            fig, ax = plt.subplots()
+            sns.histplot(df[variable1], ax=ax)
+            st.pyplot(fig)
+
+
+
+            # Вторая
+            st.subheader("Распределение переменной 2")
+
+            # Гистограмма для числовых переменных
+            fig, ax = plt.subplots()
+            sns.histplot(df[variable2], ax=ax)
+            st.pyplot(fig)
+
+            st.subheader("Зависимость показателей")
+            variable3 = st.selectbox("Выберите первый показатель", variable_list)
+            variable4 = st.selectbox("Выберите второй показатель (отличный от первого)", variable_list)
+            pivot_df1 = df.pivot_table(index=variable3, values=variable4)
+
+            # Create and display the plot in Streamlit
+            fig, ax = plt.subplots()
+            pivot_df1.plot(ax=ax)
+            ax.set_title('Зависимость продаж от рейтинга')
+            ax.set_xlabel('Рейтинг')
+            ax.set_ylabel('Продажи')
+            st.pyplot(fig)
+        except Exception as e:
+            st.write("Ну вот не получилось что-то: ", e)
+        try:
+
+            st.subheader("Распределение по потребности в сотрудниках")
+            pivot_df = df.pivot_table(index=df.index, values="Total_works")
+
+            # Create and display the plot in Streamlit
+            fig, ax = plt.subplots()
+            #pivot_df.plot(ax=ax)
+            plt.plot(df.index, df['Total_works'], color='r' )
+            plt.plot(df.index, df['import_workers'], color='b' )
+            plt.plot(df.index, df['local_workers'], color='g' )
+            ax.set_title('Зависимость количества сотрудников от месяца работы')
+            ax.set_xlabel('Продолжительность работы в месяцах')
+            ax.set_ylabel('Сотрудники')
+            ax.legend(['Все сотрудники','Иностранные сотрудники','Местные сотрудники'])
+            st.pyplot(fig)
+
+
+
+
+
+
+        except Exception as e:
+            st.write("Ну вот не получилось что-то: ", e)
+
+
+if __name__ == '__main__':
+    run()
